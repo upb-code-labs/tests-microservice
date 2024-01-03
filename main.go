@@ -1,7 +1,19 @@
 package main
 
-import "fmt"
+import (
+	"github.com/upb-code-labs/tests-microservice/infrastructure/rabbitmq"
+)
 
 func main() {
-	fmt.Println("Implement me!")
+	// Setup rabbitmq connection
+	rabbitmq.ConnectToRabbitMQ()
+	defer rabbitmq.CloseRabbitMQConnection()
+
+	// Start listening to submissions queue
+	submissionsQueueManager := rabbitmq.GetSubmissionQueueManager()
+	submissionsQueueManager.ListenForSubmissions()
+
+	// Block forever
+	var forever chan bool
+	<-forever
 }
