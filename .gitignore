@@ -3,3 +3,6 @@
 
 # Temp folders
 tmp
+
+# Tests execution folder
+tests_exec_dir/
