@@ -1,14 +1,19 @@
 package rabbitmq
 
 import (
+	"encoding/json"
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/upb-code-labs/tests-microservice/application"
+	"github.com/upb-code-labs/tests-microservice/domain/entities"
+	"github.com/upb-code-labs/tests-microservice/utils"
 )
 
 type SubmissionQueueManager struct {
 	Queue          *amqp.Queue
 	MessageChannel <-chan amqp.Delivery
+	UseCases       *application.SubmissionsUseCases
 }
 
 // submissionQueueManagerInstance Singleton struct
@@ -64,7 +69,8 @@ func GetRabbitMQSubmissionsQueue() *amqp.Queue {
 func GetSubmissionQueueManager() *SubmissionQueueManager {
 	if submissionQueueManagerInstance == nil {
 		submissionQueueManagerInstance = &SubmissionQueueManager{
-			Queue: GetRabbitMQSubmissionsQueue(),
+			Queue:    GetRabbitMQSubmissionsQueue(),
+			UseCases: &application.SubmissionsUseCases{},
 		}
 	}
 
@@ -108,7 +114,28 @@ func (manager *SubmissionQueueManager) ListenForSubmissions() {
 // processSubmissions infinite loop to process received submissions
 func (manager *SubmissionQueueManager) processSubmissions() {
 	for msg := range manager.MessageChannel {
-		log.Printf("Received a message: %s\n", msg.Body)
+		// log.Printf("Received a message: %s\n", msg.Body)
+
+		// Unmarshal message
+		var submissionWork entities.SubmissionWork
+		err := json.Unmarshal(msg.Body, &submissionWork)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		// Process submission
+		runner, err := utils.GetTestRunnerByLanguageUUID(submissionWork.LanguageUUID)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
+
+		err = manager.UseCases.RunTests(&submissionWork, runner)
+		if err != nil {
+			log.Println(err.Error())
+			continue
+		}
 
 		// Acknowledge message
 		// msg.Ack(false)
