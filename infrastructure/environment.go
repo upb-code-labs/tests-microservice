@@ -5,6 +5,7 @@ import "github.com/kelseyhightower/envconfig"
 type Environment struct {
 	RabbitMQConnectionString       string `split_words:"true" default:"amqp://rabbitmq:rabbitmq@localhost:5672/"`
 	StaticFilesMicroserviceAddress string `split_words:"true" default:"http://localhost:8081"`
+	TestsExecutionDirectory        string `split_words:"true" default:"./tests_exec_dir"`
 }
 
 var env *Environment
