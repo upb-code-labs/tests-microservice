@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/upb-code-labs/tests-microservice/domain/dtos"
@@ -177,9 +179,12 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 	return nil
 }
 
-func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) error {
+func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dtos.TestResultDTO, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	// Delete the submission directory at the end
+	defer javaTestsRunner.deleteSubmissionDirectory(submissionUUID)
 
 	// Get the submission path
 	submissionPath := fmt.Sprintf(
@@ -188,7 +193,7 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) error {
 		submissionUUID,
 	)
 
-	// Run the tests
+	// Prepare the command
 	testAndBuildCommand := fmt.Sprintf(
 		"cd %s && mvn clean test",
 		submissionPath,
@@ -201,22 +206,71 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) error {
 		testAndBuildCommand,
 	)
 
+	// Run the command
 	out, err := cmd.CombinedOutput()
 
+	// Parse errors (if any)
 	if err != nil {
-		fmt.Println("Error while running tests", err)
-		return err
+		errorLines := javaTestsRunner.getErrorLinesFromOutput(string(out))
+		errorLines = javaTestsRunner.sanitizeConsoleTextLines(errorLines)
+
+		return &dtos.TestResultDTO{
+			SubmissionUUID: submissionUUID,
+			TestsPassed:    false,
+			TestsOutput:    strings.Join(errorLines, "\n"),
+		}, nil
 	}
 
-	fmt.Println("Tests output", string(out))
+	// Parse success lines
+	successLines := javaTestsRunner.getSuccessLinesFromOutput(string(out))
+	successLines = javaTestsRunner.sanitizeConsoleTextLines(successLines)
 
-	// Delete the submission directory
-	err = javaTestsRunner.deleteSubmissionDirectory(submissionUUID)
-	if err != nil {
-		return err
+	return &dtos.TestResultDTO{
+		SubmissionUUID: submissionUUID,
+		TestsPassed:    true,
+		TestsOutput:    strings.Join(successLines, "\n"),
+	}, nil
+}
+
+func (javaTestsRunner *JavaTestsRunner) getErrorLinesFromOutput(output string) []string {
+	errorRegex := regexp.MustCompile(`(?m)^\[ERROR\].*$`)
+	errorLines := errorRegex.FindAllString(output, -1)
+	return errorLines
+}
+
+func (javaTestsRunner *JavaTestsRunner) sanitizeConsoleTextLines(textLines []string) []string {
+	sanitizedTextLines := []string{}
+
+	regExpToReplace := []dtos.ReplaceRegexDTO{
+		{
+			Regexp:      *regexp.MustCompile(`\/[a-zA-Z0-9_\-]+(?:\/[a-zA-Z0-9_\-]+)*\/template`),
+			Replacement: "****/****",
+		},
 	}
 
-	return nil
+	for _, errorLine := range textLines {
+		for _, regExp := range regExpToReplace {
+			errorLine = regExp.Regexp.ReplaceAllString(errorLine, regExp.Replacement)
+		}
+
+		sanitizedTextLines = append(sanitizedTextLines, errorLine)
+	}
+
+	return sanitizedTextLines
+}
+
+func (javaTestsRunner *JavaTestsRunner) getSuccessLinesFromOutput(output string) []string {
+	// Header line
+	successRegex := regexp.MustCompile(`\[INFO\] Tests run: \d+, Failures: \d+, Errors: \d+, Skipped: \d+`)
+
+	// Find the header line and trim the text from it (including the header line) to the end
+	headerLineIndex := successRegex.FindStringIndex(output)
+	if headerLineIndex == nil {
+		return []string{}
+	}
+
+	output = output[headerLineIndex[0]:]
+	return strings.Split(output, "\n")
 }
 
 func (javaTestsRunner *JavaTestsRunner) deleteSubmissionDirectory(submissionUUID string) error {

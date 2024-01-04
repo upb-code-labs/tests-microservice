@@ -1,6 +1,8 @@
 package application
 
 import (
+	"fmt"
+
 	"github.com/upb-code-labs/tests-microservice/domain/definitions"
 	"github.com/upb-code-labs/tests-microservice/domain/dtos"
 	"github.com/upb-code-labs/tests-microservice/domain/entities"
@@ -55,7 +57,9 @@ func (submissionsUseCases *SubmissionsUseCases) RunTests(
 	}
 
 	// Run the tests
-	err = testsRunner.RunTests(submissionWork.SubmissionUUID)
+	result, err := testsRunner.RunTests(submissionWork.SubmissionUUID)
+	fmt.Printf("Result: %+v\n", result)
+
 	if err != nil {
 		return err
 	}

@@ -5,7 +5,7 @@ import (
 )
 
 type LanguageTestsRunner interface {
-	RunTests(submissionUUID string) error
+	RunTests(submissionUUID string) (*dtos.TestResultDTO, error)
 	SaveArchivesInFS(dto *dtos.TestArchivesDTO) error
 	MergeArchives(submissionUUID string) error
 }
