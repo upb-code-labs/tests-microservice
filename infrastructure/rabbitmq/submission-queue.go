@@ -114,30 +114,34 @@ func (manager *SubmissionQueueManager) ListenForSubmissions() {
 // processSubmissions infinite loop to process received submissions
 func (manager *SubmissionQueueManager) processSubmissions() {
 	for msg := range manager.MessageChannel {
-		// log.Printf("Received a message: %s\n", msg.Body)
-
-		// Unmarshal message
-		var submissionWork entities.SubmissionWork
-		err := json.Unmarshal(msg.Body, &submissionWork)
-		if err != nil {
-			log.Println(err.Error())
-			continue
-		}
-
-		// Process submission
-		runner, err := utils.GetTestRunnerByLanguageUUID(submissionWork.LanguageUUID)
-		if err != nil {
-			log.Println(err.Error())
-			continue
-		}
-
-		err = manager.UseCases.RunTests(&submissionWork, runner)
-		if err != nil {
-			log.Println(err.Error())
-			continue
-		}
-
-		// Acknowledge message
-		// msg.Ack(false)
+		go manager.processSubmission(msg)
 	}
+}
+
+func (manager *SubmissionQueueManager) processSubmission(msg amqp.Delivery) {
+	// log.Printf("Received a message: %s\n", msg.Body)
+
+	// Unmarshal message
+	var submissionWork entities.SubmissionWork
+	err := json.Unmarshal(msg.Body, &submissionWork)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	// Process submission
+	runner, err := utils.GetTestRunnerByLanguageUUID(submissionWork.LanguageUUID)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	err = manager.UseCases.RunTests(&submissionWork, runner)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+
+	// Acknowledge message
+	// msg.Ack(false)
 }
