@@ -23,7 +23,6 @@ func (staticFilesManager *StaticFilesManager) GetArchiveBytes(dto *dtos.GetFileF
 	// Create request payload from the dto
 	body, err := json.Marshal(dto)
 	if err != nil {
-		fmt.Println(err)
 		return []byte{}, err
 	}
 
