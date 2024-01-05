@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/upb-code-labs/tests-microservice/domain/definitions"
+	"github.com/upb-code-labs/tests-microservice/domain/dtos"
 	"github.com/upb-code-labs/tests-microservice/infrastructure/implementations"
 )
 
@@ -16,4 +17,27 @@ func GetTestRunnerByLanguageUUID(languageUUID string) (runner definitions.Langua
 	}
 
 	return nil, errors.New("language not found")
+}
+
+func GetTestResultDTOFromErrorMessage(
+	submissionUUID string,
+	errorMessage string,
+) *dtos.TestResultDTO {
+	return &dtos.TestResultDTO{
+		SubmissionUUID: submissionUUID,
+		TestsPassed:    false,
+		TestsOutput:    errorMessage,
+	}
+}
+
+func GetSubmissionStatusUpdateDTOFromErrorMessage(
+	submissionUUID string,
+	errorMessage string,
+) *dtos.SubmissionStatusUpdateDTO {
+	return &dtos.SubmissionStatusUpdateDTO{
+		SubmissionUUID:   submissionUUID,
+		TestsPassed:      false,
+		TestsOutput:      errorMessage,
+		SubmissionStatus: "ready",
+	}
 }

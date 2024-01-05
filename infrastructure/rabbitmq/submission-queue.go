@@ -6,18 +6,19 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/upb-code-labs/tests-microservice/application"
+	"github.com/upb-code-labs/tests-microservice/domain/dtos"
 	"github.com/upb-code-labs/tests-microservice/domain/entities"
 	"github.com/upb-code-labs/tests-microservice/utils"
 )
 
-type SubmissionQueueManager struct {
+type SubmissionQueueMgr struct {
 	Queue          *amqp.Queue
 	MessageChannel <-chan amqp.Delivery
 	UseCases       *application.SubmissionsUseCases
 }
 
 // submissionQueueManagerInstance Singleton struct
-var submissionQueueManagerInstance *SubmissionQueueManager
+var submissionQueueManagerInstance *SubmissionQueueMgr
 
 // GetRabbitMQSubmissionsQueue returns a pointer to the submissions queue
 func GetRabbitMQSubmissionsQueue() *amqp.Queue {
@@ -58,17 +59,17 @@ func GetRabbitMQSubmissionsQueue() *amqp.Queue {
 		}
 
 		// Set queue
-		log.Println("RabbitMQ submissions queue declared / set")
+		log.Println("RabbitMQ: Submissions queue declared")
 		return &q
 	}
 
 	return submissionQueueManagerInstance.Queue
 }
 
-// GetSubmissionQueueManager returns a pointer to the singleton instance of SubmissionQueueManager
-func GetSubmissionQueueManager() *SubmissionQueueManager {
+// GetSubmissionQueueMgr returns a pointer to the singleton instance of SubmissionQueueMgr
+func GetSubmissionQueueMgr() *SubmissionQueueMgr {
 	if submissionQueueManagerInstance == nil {
-		submissionQueueManagerInstance = &SubmissionQueueManager{
+		submissionQueueManagerInstance = &SubmissionQueueMgr{
 			Queue:    GetRabbitMQSubmissionsQueue(),
 			UseCases: &application.SubmissionsUseCases{},
 		}
@@ -78,7 +79,7 @@ func GetSubmissionQueueManager() *SubmissionQueueManager {
 }
 
 // ListenForSubmissions starts listening for submissions
-func (manager *SubmissionQueueManager) ListenForSubmissions() {
+func (manager *SubmissionQueueMgr) ListenForSubmissions() {
 	ch := GetRabbitMQChannel()
 
 	// Set consumer
@@ -112,36 +113,59 @@ func (manager *SubmissionQueueManager) ListenForSubmissions() {
 }
 
 // processSubmissions infinite loop to process received submissions
-func (manager *SubmissionQueueManager) processSubmissions() {
+func (manager *SubmissionQueueMgr) processSubmissions() {
 	for msg := range manager.MessageChannel {
 		go manager.processSubmission(msg)
 	}
 }
 
-func (manager *SubmissionQueueManager) processSubmission(msg amqp.Delivery) {
-	// log.Printf("Received a message: %s\n", msg.Body)
+func (manager *SubmissionQueueMgr) processSubmission(msg amqp.Delivery) {
+	// ACK message after processing
+	defer msg.Ack(false)
 
 	// Unmarshal message
 	var submissionWork entities.SubmissionWork
 	err := json.Unmarshal(msg.Body, &submissionWork)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println("[ERROR] Failed to unmarshal submission work", err.Error())
+		return
+	}
+
+	// Send submission status update
+	statusDTO := &dtos.SubmissionStatusUpdateDTO{
+		SubmissionUUID:   submissionWork.SubmissionUUID,
+		TestsPassed:      false,
+		TestsOutput:      "",
+		SubmissionStatus: "running",
+	}
+
+	err = manager.sendStatusUpdate(statusDTO)
+	if err != nil {
+		log.Println("[ERROR] Failed to send submission status update", err.Error())
 		return
 	}
 
 	// Process submission
 	runner, err := utils.GetTestRunnerByLanguageUUID(submissionWork.LanguageUUID)
 	if err != nil {
-		log.Println(err.Error())
+		manager.sendStatusUpdate(utils.GetSubmissionStatusUpdateDTOFromErrorMessage(
+			submissionWork.SubmissionUUID,
+			"[ERROR] We couldn't find a test runner for the language you submitted",
+		))
 		return
 	}
 
-	err = manager.UseCases.RunTests(&submissionWork, runner)
+	result := manager.UseCases.RunTests(&submissionWork, runner)
+
+	// Send submission status update
+	err = manager.sendStatusUpdate(result.ToSubmissionStatusUpdateDTO("ready"))
 	if err != nil {
-		log.Println(err.Error())
+		log.Println("[ERROR] Failed to send submission status update", err.Error())
 		return
 	}
+}
 
-	// Acknowledge message
-	// msg.Ack(false)
+func (manager *SubmissionQueueMgr) sendStatusUpdate(dto *dtos.SubmissionStatusUpdateDTO) error {
+	submissionStatusQueueMgr := GetSubmissionStatusUpdatesQueueMgrInstance()
+	return submissionStatusQueueMgr.QueueUpdate(dto)
 }

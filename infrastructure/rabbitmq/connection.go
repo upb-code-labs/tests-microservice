@@ -24,7 +24,7 @@ func ConnectToRabbitMQ() {
 	}
 
 	// Set channel
-	log.Println("Connected to RabbitMQ")
+	log.Println("RabbitMQ: Connection established")
 	rabbitMQChannel = ch
 }
 

@@ -1,6 +1,8 @@
 package dtos
 
-import "regexp"
+import (
+	"regexp"
+)
 
 type GetFileFromMicroserviceDTO struct {
 	FileUUID string `json:"archive_uuid"`
@@ -20,7 +22,23 @@ type ReplaceRegexDTO struct {
 }
 
 type TestResultDTO struct {
-	SubmissionUUID string
-	TestsPassed    bool
-	TestsOutput    string
+	SubmissionUUID string `json:"submission_uuid"`
+	TestsPassed    bool   `json:"tests_passed"`
+	TestsOutput    string `json:"tests_output"`
+}
+
+func (dto *TestResultDTO) ToSubmissionStatusUpdateDTO(status string) *SubmissionStatusUpdateDTO {
+	return &SubmissionStatusUpdateDTO{
+		SubmissionUUID:   dto.SubmissionUUID,
+		SubmissionStatus: status,
+		TestsPassed:      dto.TestsPassed,
+		TestsOutput:      dto.TestsOutput,
+	}
+}
+
+type SubmissionStatusUpdateDTO struct {
+	SubmissionUUID   string `json:"submission_uuid"`
+	SubmissionStatus string `json:"submission_status"`
+	TestsPassed      bool   `json:"tests_passed"`
+	TestsOutput      string `json:"tests_output"`
 }

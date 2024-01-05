@@ -10,7 +10,7 @@ func main() {
 	defer rabbitmq.CloseRabbitMQConnection()
 
 	// Start listening to submissions queue
-	submissionsQueueManager := rabbitmq.GetSubmissionQueueManager()
+	submissionsQueueManager := rabbitmq.GetSubmissionQueueMgr()
 	submissionsQueueManager.ListenForSubmissions()
 
 	// Block forever

@@ -1,12 +1,11 @@
 package application
 
 import (
-	"fmt"
-
 	"github.com/upb-code-labs/tests-microservice/domain/definitions"
 	"github.com/upb-code-labs/tests-microservice/domain/dtos"
 	"github.com/upb-code-labs/tests-microservice/domain/entities"
 	"github.com/upb-code-labs/tests-microservice/infrastructure/static_files"
+	"github.com/upb-code-labs/tests-microservice/utils"
 )
 
 type SubmissionsUseCases struct{}
@@ -14,13 +13,16 @@ type SubmissionsUseCases struct{}
 func (submissionsUseCases *SubmissionsUseCases) RunTests(
 	submissionWork *entities.SubmissionWork,
 	testsRunner definitions.LanguageTestsRunner,
-) error {
+) dtos.TestResultDTO {
 	// Get the archives
 	staticFilesManager := static_files.StaticFilesManager{}
 
 	languageTemplateArchive, err := staticFilesManager.GetLanguageTemplateBytes(submissionWork.LanguageUUID)
 	if err != nil {
-		return err
+		return *utils.GetTestResultDTOFromErrorMessage(
+			submissionWork.SubmissionUUID,
+			"[ERROR] We couldn't get the programming language archive to run the tests",
+		)
 	}
 
 	testsArchive, err := staticFilesManager.GetArchiveBytes(&dtos.GetFileFromMicroserviceDTO{
@@ -28,7 +30,10 @@ func (submissionsUseCases *SubmissionsUseCases) RunTests(
 		FileType: "test",
 	})
 	if err != nil {
-		return err
+		return *utils.GetTestResultDTOFromErrorMessage(
+			submissionWork.SubmissionUUID,
+			"[ERROR] We couldn't get the tests archive to run the tests",
+		)
 	}
 
 	solutionArchive, err := staticFilesManager.GetArchiveBytes(&dtos.GetFileFromMicroserviceDTO{
@@ -36,7 +41,10 @@ func (submissionsUseCases *SubmissionsUseCases) RunTests(
 		FileType: "submission",
 	})
 	if err != nil {
-		return err
+		return *utils.GetTestResultDTOFromErrorMessage(
+			submissionWork.SubmissionUUID,
+			"[ERROR] We couldn't get your submission archive to run the tests",
+		)
 	}
 
 	// Save the archives in the FS
@@ -47,22 +55,22 @@ func (submissionsUseCases *SubmissionsUseCases) RunTests(
 		TestsArchive:            &testsArchive,
 	})
 	if err != nil {
-		return err
+		return *utils.GetTestResultDTOFromErrorMessage(
+			submissionWork.SubmissionUUID,
+			"[ERROR] We couldn't save the archives in the file system to run the tests",
+		)
 	}
 
 	// "Merge" the archives
 	err = testsRunner.MergeArchives(submissionWork.SubmissionUUID)
 	if err != nil {
-		return err
+		return *utils.GetTestResultDTOFromErrorMessage(
+			submissionWork.SubmissionUUID,
+			"[ERROR] We couldn't prepare the archives to run the tests",
+		)
 	}
 
 	// Run the tests
-	result, err := testsRunner.RunTests(submissionWork.SubmissionUUID)
-	fmt.Printf("Result: %+v\n", result)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
+	result, _ := testsRunner.RunTests(submissionWork.SubmissionUUID)
+	return *result
 }
