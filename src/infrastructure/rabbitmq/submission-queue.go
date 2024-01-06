@@ -5,10 +5,10 @@ import (
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/upb-code-labs/tests-microservice/application"
-	"github.com/upb-code-labs/tests-microservice/domain/dtos"
-	"github.com/upb-code-labs/tests-microservice/domain/entities"
-	"github.com/upb-code-labs/tests-microservice/utils"
+	"github.com/upb-code-labs/tests-microservice/src/application"
+	"github.com/upb-code-labs/tests-microservice/src/domain/dtos"
+	"github.com/upb-code-labs/tests-microservice/src/domain/entities"
+	"github.com/upb-code-labs/tests-microservice/src/utils"
 )
 
 type SubmissionQueueMgr struct {
@@ -130,6 +130,9 @@ func (manager *SubmissionQueueMgr) processSubmission(msg amqp.Delivery) {
 		log.Println("[ERROR] Failed to unmarshal submission work", err.Error())
 		return
 	}
+
+	// Log message to console
+	log.Println("[RabbitMQ]: Received submission status update", submissionWork.SubmissionUUID)
 
 	// Send submission status update
 	statusDTO := &dtos.SubmissionStatusUpdateDTO{

@@ -3,9 +3,9 @@ package utils
 import (
 	"errors"
 
-	"github.com/upb-code-labs/tests-microservice/domain/definitions"
-	"github.com/upb-code-labs/tests-microservice/domain/dtos"
-	"github.com/upb-code-labs/tests-microservice/infrastructure/implementations"
+	"github.com/upb-code-labs/tests-microservice/src/domain/definitions"
+	"github.com/upb-code-labs/tests-microservice/src/domain/dtos"
+	"github.com/upb-code-labs/tests-microservice/src/infrastructure/implementations"
 )
 
 func GetTestRunnerByLanguageUUID(languageUUID string) (runner definitions.LanguageTestsRunner, err error) {

@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/upb-code-labs/tests-microservice/domain/dtos"
-	"github.com/upb-code-labs/tests-microservice/infrastructure"
+	"github.com/upb-code-labs/tests-microservice/src/domain/dtos"
+	"github.com/upb-code-labs/tests-microservice/src/infrastructure"
 )
 
 type JavaTestsRunner struct{}
