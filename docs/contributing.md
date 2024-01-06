@@ -55,7 +55,7 @@ air
 
 This will start the tests micro-service and will watch for changes in the source code and restart the service automatically.
 
-Additionally, you may want to generate a `.air.toml` file and add the `tests_exec_dir/` directory to the `exclude_dir` list in order to avoid restarting the service when the tests are executed, to do this, run the following command or refer to the [Air documentation](https://github.com/cosmtrek/air)
+Additionally, you may want to generate a `.air.toml` file and add the `tests-execution-directory/` directory to the `exclude_dir` list in order to avoid restarting the service when the tests are executed, to do this, run the following command or refer to the [Air documentation](https://github.com/cosmtrek/air)
 
 ```bash
 air init
