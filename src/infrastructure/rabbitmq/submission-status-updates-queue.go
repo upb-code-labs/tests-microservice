@@ -7,7 +7,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/upb-code-labs/tests-microservice/domain/dtos"
+	"github.com/upb-code-labs/tests-microservice/src/domain/dtos"
 )
 
 type SubmissionStatusUpdatesQueueMgr struct {

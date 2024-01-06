@@ -1,7 +1,7 @@
 package definitions
 
 import (
-	"github.com/upb-code-labs/tests-microservice/domain/dtos"
+	"github.com/upb-code-labs/tests-microservice/src/domain/dtos"
 )
 
 type LanguageTestsRunner interface {

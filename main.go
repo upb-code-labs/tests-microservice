@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/upb-code-labs/tests-microservice/infrastructure/rabbitmq"
+	"github.com/upb-code-labs/tests-microservice/src/infrastructure/rabbitmq"
 )
 
 func main() {
