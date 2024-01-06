@@ -1,11 +1,11 @@
 package application
 
 import (
-	"github.com/upb-code-labs/tests-microservice/domain/definitions"
-	"github.com/upb-code-labs/tests-microservice/domain/dtos"
-	"github.com/upb-code-labs/tests-microservice/domain/entities"
-	"github.com/upb-code-labs/tests-microservice/infrastructure/static_files"
-	"github.com/upb-code-labs/tests-microservice/utils"
+	"github.com/upb-code-labs/tests-microservice/src/domain/definitions"
+	"github.com/upb-code-labs/tests-microservice/src/domain/dtos"
+	"github.com/upb-code-labs/tests-microservice/src/domain/entities"
+	"github.com/upb-code-labs/tests-microservice/src/infrastructure/static_files"
+	"github.com/upb-code-labs/tests-microservice/src/utils"
 )
 
 type SubmissionsUseCases struct{}

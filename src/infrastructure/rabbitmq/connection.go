@@ -4,7 +4,7 @@ import (
 	"log"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/upb-code-labs/tests-microservice/infrastructure"
+	"github.com/upb-code-labs/tests-microservice/src/infrastructure"
 )
 
 var rabbitMQChannel *amqp.Channel
