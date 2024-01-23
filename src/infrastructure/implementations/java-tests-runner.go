@@ -188,7 +188,13 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 
 // RunTests runs the tests and returns the result
 func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dtos.TestResultDTO, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	timeLimitInMinutes := 2.0
+	timeLimitInSeconds := int(timeLimitInMinutes * 60)
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(timeLimitInSeconds)*time.Second,
+	)
 	defer cancel()
 
 	// Delete the submission directory at the end
@@ -203,8 +209,9 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dt
 
 	// Prepare the command
 	testAndBuildCommand := fmt.Sprintf(
-		"cd %s && timeout 1m mvn clean test",
+		"cd %s && timeout %dm mvn clean test",
 		submissionPath,
+		timeLimitInSeconds,
 	)
 
 	cmd := exec.CommandContext(
