@@ -21,6 +21,8 @@ var templateArchivePathTemplate = "%s/template.zip"
 var testsArchivePathTemplate = "%s/tests.zip"
 var submissionArchivePathTemplate = "%s/submission.zip"
 
+var defaultErrorLineOnEmptyErrorLines = "[ERROR] We had an error while running the tests. It's possible that the tests execution time exceeded our limit. Please try again or report the issue if it persists."
+
 // SaveArchivesInFS saves the archives needed to run the tests in the file system
 func (javaTestsRunner *JavaTestsRunner) SaveArchivesInFS(dto *dtos.TestArchivesDTO) error {
 	// Ensure the directory doesn't exist
@@ -228,6 +230,10 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dt
 	if err != nil {
 		errorLines := javaTestsRunner.getErrorLinesFromOutput(string(out))
 		errorLines = javaTestsRunner.sanitizeConsoleTextLines(errorLines)
+
+		if len(errorLines) == 0 {
+			errorLines = []string{defaultErrorLineOnEmptyErrorLines}
+		}
 
 		return &dtos.TestResultDTO{
 			SubmissionUUID: submissionUUID,
