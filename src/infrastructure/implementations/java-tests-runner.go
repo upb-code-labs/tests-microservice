@@ -17,6 +17,11 @@ import (
 
 type JavaTestsRunner struct{}
 
+var templateArchivePathTemplate = "%s/template.zip"
+var testsArchivePathTemplate = "%s/tests.zip"
+var submissionArchivePathTemplate = "%s/submission.zip"
+
+// SaveArchivesInFS saves the archives needed to run the tests in the file system
 func (javaTestsRunner *JavaTestsRunner) SaveArchivesInFS(dto *dtos.TestArchivesDTO) error {
 	// Ensure the directory doesn't exist
 	path := fmt.Sprintf(
@@ -38,7 +43,7 @@ func (javaTestsRunner *JavaTestsRunner) SaveArchivesInFS(dto *dtos.TestArchivesD
 	// Save the archives
 	err = javaTestsRunner.saveArchiveInFS(
 		dto.LanguageTemplateArchive,
-		fmt.Sprintf("%s/template.zip", path),
+		fmt.Sprintf(templateArchivePathTemplate, path),
 	)
 	if err != nil {
 		return err
@@ -46,7 +51,7 @@ func (javaTestsRunner *JavaTestsRunner) SaveArchivesInFS(dto *dtos.TestArchivesD
 
 	err = javaTestsRunner.saveArchiveInFS(
 		dto.TestsArchive,
-		fmt.Sprintf("%s/tests.zip", path),
+		fmt.Sprintf(testsArchivePathTemplate, path),
 	)
 	if err != nil {
 		return err
@@ -54,7 +59,7 @@ func (javaTestsRunner *JavaTestsRunner) SaveArchivesInFS(dto *dtos.TestArchivesD
 
 	err = javaTestsRunner.saveArchiveInFS(
 		dto.SubmissionArchive,
-		fmt.Sprintf("%s/submission.zip", path),
+		fmt.Sprintf(submissionArchivePathTemplate, path),
 	)
 	if err != nil {
 		return err
@@ -69,6 +74,8 @@ func (javaTestsRunner *JavaTestsRunner) saveArchiveInFS(fileBytes *[]byte, path 
 	return err
 }
 
+// MergeArchives merges the content of the template archive, teacher's tests archive and student's
+// submission archive into a single directory that will be used to run the tests
 func (javaTestsRunner *JavaTestsRunner) MergeArchives(submissionUUID string) error {
 	// Unzip the archives
 	err := javaTestsRunner.unzipArchives(submissionUUID)
@@ -114,7 +121,7 @@ func (javaTestsRunner *JavaTestsRunner) unzipArchives(submissionUUID string) err
 	archivesManager := ArchivesManagerImplementation{}
 
 	err := archivesManager.ExtractArchive(
-		fmt.Sprintf("%s/template.zip", submissionPathPrefix),
+		fmt.Sprintf(templateArchivePathTemplate, submissionPathPrefix),
 		fmt.Sprintf("%s/template", submissionPathPrefix),
 	)
 	if err != nil {
@@ -123,7 +130,7 @@ func (javaTestsRunner *JavaTestsRunner) unzipArchives(submissionUUID string) err
 	}
 
 	err = archivesManager.ExtractArchive(
-		fmt.Sprintf("%s/tests.zip", submissionPathPrefix),
+		fmt.Sprintf(testsArchivePathTemplate, submissionPathPrefix),
 		fmt.Sprintf("%s/tests", submissionPathPrefix),
 	)
 	if err != nil {
@@ -132,7 +139,7 @@ func (javaTestsRunner *JavaTestsRunner) unzipArchives(submissionUUID string) err
 	}
 
 	err = archivesManager.ExtractArchive(
-		fmt.Sprintf("%s/submission.zip", submissionPathPrefix),
+		fmt.Sprintf(submissionArchivePathTemplate, submissionPathPrefix),
 		fmt.Sprintf("%s/submission", submissionPathPrefix),
 	)
 	if err != nil {
@@ -153,7 +160,7 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 	archivesManager := ArchivesManagerImplementation{}
 
 	err := archivesManager.DeleteArchive(
-		fmt.Sprintf("%s/template.zip", submissionPathPrefix),
+		fmt.Sprintf(templateArchivePathTemplate, submissionPathPrefix),
 	)
 	if err != nil {
 		log.Println("Error while deleting template archive", err)
@@ -161,7 +168,7 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 	}
 
 	err = archivesManager.DeleteArchive(
-		fmt.Sprintf("%s/tests.zip", submissionPathPrefix),
+		fmt.Sprintf(testsArchivePathTemplate, submissionPathPrefix),
 	)
 	if err != nil {
 		log.Println("Error while deleting tests archive", err)
@@ -169,7 +176,7 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 	}
 
 	err = archivesManager.DeleteArchive(
-		fmt.Sprintf("%s/submission.zip", submissionPathPrefix),
+		fmt.Sprintf(submissionArchivePathTemplate, submissionPathPrefix),
 	)
 	if err != nil {
 		log.Println("Error while deleting submission archive", err)
@@ -179,6 +186,7 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 	return nil
 }
 
+// RunTests runs the tests and returns the result
 func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dtos.TestResultDTO, err error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
 	defer cancel()
@@ -222,7 +230,7 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dt
 	}
 
 	// Parse success lines
-	successLines := javaTestsRunner.getSuccessLinesFromOutput(string(out))
+	successLines := javaTestsRunner.getResultLinesFromSuccessOutput(string(out))
 	successLines = javaTestsRunner.sanitizeConsoleTextLines(successLines)
 
 	return &dtos.TestResultDTO{
@@ -232,19 +240,28 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dt
 	}, nil
 }
 
+// getErrorLinesFromOutput returns the lines starting with the `[ERROR]` prefix from the output
 func (javaTestsRunner *JavaTestsRunner) getErrorLinesFromOutput(output string) []string {
 	errorRegex := regexp.MustCompile(`(?m)^\[ERROR\].*$`)
 	errorLines := errorRegex.FindAllString(output, -1)
 	return errorLines
 }
 
+// sanitizeConsoleTextLines removes the lines that are not relevant for the user or can contain
+// sensitive information
 func (javaTestsRunner *JavaTestsRunner) sanitizeConsoleTextLines(textLines []string) []string {
 	sanitizedTextLines := []string{}
 
 	regExpToReplace := []dtos.ReplaceRegexDTO{
+		// Remove possible path to the tests execution directory
 		{
 			Regexp:      *regexp.MustCompile(`\/[a-zA-Z0-9_\-]+(?:\/[a-zA-Z0-9_\-]+)*\/template`),
 			Replacement: "****/****",
+		},
+		// Remove lines starting with [WARNING]
+		{
+			Regexp:      *regexp.MustCompile(`(?m)^\[WARNING\].*$`),
+			Replacement: "",
 		},
 	}
 
@@ -253,13 +270,17 @@ func (javaTestsRunner *JavaTestsRunner) sanitizeConsoleTextLines(textLines []str
 			errorLine = regExp.Regexp.ReplaceAllString(errorLine, regExp.Replacement)
 		}
 
-		sanitizedTextLines = append(sanitizedTextLines, errorLine)
+		if len(errorLine) > 0 {
+			sanitizedTextLines = append(sanitizedTextLines, errorLine)
+		}
 	}
 
 	return sanitizedTextLines
 }
 
-func (javaTestsRunner *JavaTestsRunner) getSuccessLinesFromOutput(output string) []string {
+// getResultLinesFromSuccessOutput returns the lines of the output starting from the tests results
+// summary / header line until the end
+func (javaTestsRunner *JavaTestsRunner) getResultLinesFromSuccessOutput(output string) []string {
 	// Header line
 	successRegex := regexp.MustCompile(`\[INFO\] Tests run: \d+, Failures: \d+, Errors: \d+, Skipped: \d+`)
 
