@@ -21,6 +21,8 @@ var templateArchivePathTemplate = "%s/template.zip"
 var testsArchivePathTemplate = "%s/tests.zip"
 var submissionArchivePathTemplate = "%s/submission.zip"
 
+var defaultErrorLineOnEmptyErrorLines = "[ERROR] We had an error while running the tests. It's possible that the tests execution time exceeded our limit. Please try again or report the issue if it persists."
+
 // SaveArchivesInFS saves the archives needed to run the tests in the file system
 func (javaTestsRunner *JavaTestsRunner) SaveArchivesInFS(dto *dtos.TestArchivesDTO) error {
 	// Ensure the directory doesn't exist
@@ -188,7 +190,13 @@ func (javaTestsRunner *JavaTestsRunner) deleteArchives(submissionUUID string) er
 
 // RunTests runs the tests and returns the result
 func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dtos.TestResultDTO, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	timeLimitInMinutes := 2.0
+	timeLimitInSeconds := int(timeLimitInMinutes * 60)
+
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(timeLimitInSeconds)*time.Second,
+	)
 	defer cancel()
 
 	// Delete the submission directory at the end
@@ -203,8 +211,9 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dt
 
 	// Prepare the command
 	testAndBuildCommand := fmt.Sprintf(
-		"cd %s && timeout 1m mvn clean test",
+		"cd %s && timeout %dm mvn clean test",
 		submissionPath,
+		timeLimitInSeconds,
 	)
 
 	cmd := exec.CommandContext(
@@ -221,6 +230,10 @@ func (javaTestsRunner *JavaTestsRunner) RunTests(submissionUUID string) (dto *dt
 	if err != nil {
 		errorLines := javaTestsRunner.getErrorLinesFromOutput(string(out))
 		errorLines = javaTestsRunner.sanitizeConsoleTextLines(errorLines)
+
+		if len(errorLines) == 0 {
+			errorLines = []string{defaultErrorLineOnEmptyErrorLines}
+		}
 
 		return &dtos.TestResultDTO{
 			SubmissionUUID: submissionUUID,
