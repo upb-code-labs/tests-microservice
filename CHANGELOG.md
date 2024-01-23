@@ -1,3 +1,21 @@
+## [0.1.3](https://github.com/upb-code-labs/tests-microservice/compare/v0.1.2...v0.1.3) (2024-01-23)
+
+
+### Bug Fixes
+
+* **java-runner:** Update execution time limit ([#15](https://github.com/upb-code-labs/tests-microservice/issues/15)) ([571b296](https://github.com/upb-code-labs/tests-microservice/commit/571b296f860cb11b732b384a2ce54e6a4426dae0))
+
+
+
+## [0.1.2](https://github.com/upb-code-labs/tests-microservice/compare/v0.1.1...v0.1.2) (2024-01-23)
+
+
+### Bug Fixes
+
+* **java-runner:** Remove warning lines from tests output ([#13](https://github.com/upb-code-labs/tests-microservice/issues/13)) ([a76c5fb](https://github.com/upb-code-labs/tests-microservice/commit/a76c5fbd1b47fe9a41e2c26b1c69e3abe1ed902b))
+
+
+
 ## [0.1.1](https://github.com/upb-code-labs/tests-microservice/compare/v0.1.0...v0.1.1) (2024-01-06)
 
 
