@@ -23,7 +23,8 @@ RUN apk --no-cache add openjdk17
 RUN apk --no-cache add maven
 
 # Add non-root user
-RUN adduser -D -h /opt/codelabs codelabs
+RUN addgroup -g 1000 codelabs
+RUN adduser -D -h /opt/codelabs -u 1000 -G codelabs codelabs
 WORKDIR /opt/codelabs
 USER codelabs
 

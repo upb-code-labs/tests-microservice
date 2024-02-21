@@ -1,3 +1,12 @@
+## [0.1.4](https://github.com/upb-code-labs/tests-microservice/compare/v0.1.3...v0.1.4) (2024-02-21)
+
+
+### Bug Fixes
+
+* **sec:** Define GID and UID ([2c06370](https://github.com/upb-code-labs/tests-microservice/commit/2c06370d77484016a9f14352456170c03d9e2f4b))
+
+
+
 ## [0.1.3](https://github.com/upb-code-labs/tests-microservice/compare/v0.1.2...v0.1.3) (2024-01-23)
 
 
